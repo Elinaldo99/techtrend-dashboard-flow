@@ -12,12 +12,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { AddProductForm } from "./AddProductForm";
 import { Plus } from "lucide-react";
+import { useRef } from "react";
 
 interface AddProductDrawerProps {
   children?: React.ReactNode;
 }
 
 export function AddProductDrawer({ children }: AddProductDrawerProps) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
   return (
     <Drawer>
       <DrawerTrigger asChild>
@@ -38,13 +41,13 @@ export function AddProductDrawer({ children }: AddProductDrawerProps) {
           </DrawerHeader>
           <div className="mt-4">
             <AddProductForm onSubmitSuccess={() => {
-              // Fechar o drawer após adicionar produto com sucesso
-              document.querySelector("[data-drawer-close]")?.click();
+              // Usar uma referência para fechar o drawer corretamente
+              closeButtonRef.current?.click();
             }} />
           </div>
           <DrawerFooter className="pt-2">
             <DrawerClose asChild>
-              <Button variant="outline">Cancelar</Button>
+              <Button ref={closeButtonRef} variant="outline">Cancelar</Button>
             </DrawerClose>
           </DrawerFooter>
         </div>
