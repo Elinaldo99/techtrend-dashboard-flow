@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { AddProductDrawer } from "@/components/inventory/AddProductDrawer";
 
 const inventoryItems = [
   {
@@ -93,7 +94,7 @@ const Inventory = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Gerenciamento de Inventário</h1>
-        <Button>Adicionar Produto</Button>
+        <AddProductDrawer />
       </div>
 
       <div className="bg-white rounded-lg shadow p-4 space-y-4">
