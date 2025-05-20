@@ -27,7 +27,7 @@ const Header = ({ toggleSidebar }: HeaderProps) => {
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex items-center">
-            <span className="font-bold text-blue-600 text-xl">Tech</span>
+            <span className="font-bold text-purple-600 text-xl">Tech</span>
             <span className="font-bold text-gray-800 text-xl">Trend</span>
           </div>
         </div>
@@ -37,7 +37,7 @@ const Header = ({ toggleSidebar }: HeaderProps) => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5" />
-                <span className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                <span className="absolute top-1 right-1 bg-purple-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
                   3
                 </span>
               </Button>
@@ -70,7 +70,7 @@ const Header = ({ toggleSidebar }: HeaderProps) => {
               <Button variant="ghost" className="relative flex items-center gap-2">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src="" alt="Avatar" />
-                  <AvatarFallback className="bg-blue-600 text-white">AT</AvatarFallback>
+                  <AvatarFallback className="bg-purple-600 text-white">AT</AvatarFallback>
                 </Avatar>
                 <div className="hidden md:block text-left">
                   <p className="text-sm font-medium">Admin</p>

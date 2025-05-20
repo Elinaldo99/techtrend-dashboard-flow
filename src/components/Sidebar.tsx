@@ -26,7 +26,7 @@ const Sidebar = ({ open }: SidebarProps) => {
     >
       <div className="p-4">
         <div className="flex items-center justify-center mb-8 pt-2">
-          <h2 className="text-xl font-bold text-blue-600">TechTrend ERP</h2>
+          <h2 className="text-xl font-bold text-purple-600">TechTrend ERP</h2>
         </div>
         
         <nav className="space-y-1">
@@ -38,14 +38,14 @@ const Sidebar = ({ open }: SidebarProps) => {
                 to={item.path}
                 className={`flex items-center px-4 py-3 text-sm rounded-lg transition-colors ${
                   isActive
-                    ? "bg-blue-50 text-blue-600"
+                    ? "bg-purple-50 text-purple-600"
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
                 <item.icon className="w-5 h-5 mr-3" />
                 <span>{item.label}</span>
                 {isActive && (
-                  <div className="ml-auto w-1.5 h-5 bg-blue-600 rounded-full"></div>
+                  <div className="ml-auto w-1.5 h-5 bg-purple-600 rounded-full"></div>
                 )}
               </Link>
             );
