@@ -30,6 +30,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Package, Plus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 // Schema para validação do formulário
 const productSchema = z.object({
@@ -89,6 +91,11 @@ const productSchema = z.object({
 
 type ProductFormValues = z.infer<typeof productSchema>;
 
+interface Category {
+  id: string;
+  name: string;
+}
+
 export function AddProductForm({
   onSubmitSuccess,
 }: {
@@ -99,15 +106,23 @@ export function AddProductForm({
   const [isNewCategoryDialogOpen, setIsNewCategoryDialogOpen] = useState(false);
   const [newCategory, setNewCategory] = useState("");
 
-  // Categorias disponíveis
-  const [categories, setCategories] = useState([
-    "Celulares",
-    "Notebooks",
-    "Tablets",
-    "TVs e Áudio",
-    "Acessórios",
-    "Outros",
-  ]);
+  // Fetch categories from Supabase
+  const { data: categories = [], refetch: refetchCategories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name');
+      
+      if (error) {
+        console.error('Error fetching categories:', error);
+        throw new Error(error.message);
+      }
+      
+      return data as Category[];
+    },
+  });
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -153,36 +168,71 @@ export function AddProductForm({
     return number.toFixed(2);
   }
 
-  function handleAddCategory() {
+  async function handleAddCategory() {
     if (newCategory.trim().length > 0) {
-      setCategories((prev) => [...prev, newCategory]);
-      form.setValue("category", newCategory);
-      setNewCategory("");
-      setIsNewCategoryDialogOpen(false);
-      
-      toast({
-        title: "Categoria adicionada",
-        description: `A categoria "${newCategory}" foi adicionada com sucesso.`,
-      });
+      try {
+        const { data, error } = await supabase
+          .from('categories')
+          .insert([{ name: newCategory }])
+          .select()
+          .single();
+        
+        if (error) throw error;
+        
+        toast({
+          title: "Categoria adicionada",
+          description: `A categoria "${newCategory}" foi adicionada com sucesso.`,
+        });
+        
+        // Refresh categories list
+        refetchCategories();
+        
+        // Set the form value to the new category
+        if (data) {
+          form.setValue("category", data.id);
+        }
+        
+        // Reset state and close dialog
+        setNewCategory("");
+        setIsNewCategoryDialogOpen(false);
+      } catch (error) {
+        console.error('Error adding category:', error);
+        toast({
+          title: "Erro ao adicionar categoria",
+          description: "Ocorreu um erro ao adicionar a categoria.",
+          variant: "destructive",
+        });
+      }
     }
   }
 
-  function onSubmit(data: ProductFormValues) {
+  async function onSubmit(data: ProductFormValues) {
     setIsSubmitting(true);
-    
-    // Simulando uma chamada de API
-    setTimeout(() => {
-      // Gerando ID único para o produto
-      const productId = `SKU-${Math.floor(Math.random() * 1000)
-        .toString()
-        .padStart(3, "0")}`;
+
+    try {
+      // Extract numeric values from formatted strings
+      const priceValue = parseFloat(data.price.replace(/[^\d,]/g, '').replace(',', '.'));
+      const widthValue = parseFloat(data.width);
+      const heightValue = parseFloat(data.height);
+      const weightValue = parseFloat(data.weight);
       
-      // Aqui você faria a integração real com backend
-      console.log("Produto adicionado:", {
-        id: productId,
-        ...data,
-        status: parseInt(data.stock) > 5 ? "Em estoque" : "Estoque baixo",
-      });
+      // Insert product into Supabase
+      const { error } = await supabase
+        .from('products')
+        .insert([
+          {
+            name: data.name,
+            category_id: data.category,
+            price: priceValue,
+            stock: parseInt(data.stock),
+            width: widthValue,
+            height: heightValue,
+            weight: weightValue,
+            description: data.description || null,
+          },
+        ]);
+      
+      if (error) throw error;
       
       toast({
         title: "Produto adicionado",
@@ -190,9 +240,17 @@ export function AddProductForm({
       });
       
       form.reset();
-      setIsSubmitting(false);
       onSubmitSuccess();
-    }, 1000);
+    } catch (error) {
+      console.error('Error adding product:', error);
+      toast({
+        title: "Erro ao adicionar produto",
+        description: "Ocorreu um erro ao adicionar o produto.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -232,8 +290,8 @@ export function AddProductForm({
                     </FormControl>
                     <SelectContent>
                       {categories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

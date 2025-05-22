@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { AddProductForm } from "./AddProductForm";
 import { Plus } from "lucide-react";
 import { useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface AddProductDrawerProps {
   children?: React.ReactNode;
@@ -20,6 +21,17 @@ interface AddProductDrawerProps {
 
 export function AddProductDrawer({ children }: AddProductDrawerProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const queryClient = useQueryClient();
+
+  const handleProductAdded = () => {
+    // Refresh products list when a product is added
+    queryClient.invalidateQueries({ queryKey: ['products'] });
+    
+    // Close the drawer
+    if (closeButtonRef.current) {
+      closeButtonRef.current.click();
+    }
+  };
 
   return (
     <Drawer>
@@ -40,12 +52,7 @@ export function AddProductDrawer({ children }: AddProductDrawerProps) {
             </DrawerDescription>
           </DrawerHeader>
           <div className="mt-4 max-h-[calc(90vh-200px)] overflow-y-auto">
-            <AddProductForm onSubmitSuccess={() => {
-              // Usar uma referência para fechar o drawer corretamente
-              if (closeButtonRef.current) {
-                closeButtonRef.current.click();
-              }
-            }} />
+            <AddProductForm onSubmitSuccess={handleProductAdded} />
           </div>
           <DrawerFooter className="pt-2">
             <DrawerClose asChild>

@@ -12,83 +12,66 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { AddProductDrawer } from "@/components/inventory/AddProductDrawer";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
-const inventoryItems = [
-  {
-    id: "SKU-001",
-    name: "iPhone 13 Pro",
-    category: "Celulares",
-    price: "R$ 6.999,00",
-    stock: 8,
-    status: "Em estoque",
-  },
-  {
-    id: "SKU-002",
-    name: "Samsung Galaxy S21",
-    category: "Celulares",
-    price: "R$ 4.999,00",
-    stock: 12,
-    status: "Em estoque",
-  },
-  {
-    id: "SKU-003",
-    name: "MacBook Pro 14\"",
-    category: "Notebooks",
-    price: "R$ 14.999,00",
-    stock: 5,
-    status: "Em estoque",
-  },
-  {
-    id: "SKU-004",
-    name: "iPad Air",
-    category: "Tablets",
-    price: "R$ 4.799,00",
-    stock: 10,
-    status: "Em estoque",
-  },
-  {
-    id: "SKU-005",
-    name: "Sony WH-1000XM4",
-    category: "Acessórios",
-    price: "R$ 1.899,00",
-    stock: 4,
-    status: "Estoque baixo",
-  },
-  {
-    id: "SKU-006",
-    name: "Apple Watch Series 7",
-    category: "Acessórios",
-    price: "R$ 3.799,00",
-    stock: 7,
-    status: "Em estoque",
-  },
-  {
-    id: "SKU-007",
-    name: "TV Samsung QLED 55\"",
-    category: "TVs e Áudio",
-    price: "R$ 4.299,00",
-    stock: 3,
-    status: "Estoque baixo",
-  },
-  {
-    id: "SKU-008",
-    name: "JBL Flip 6",
-    category: "TVs e Áudio",
-    price: "R$ 699,00",
-    stock: 15,
-    status: "Em estoque",
-  },
-];
+interface Product {
+  id: string;
+  name: string;
+  category: {
+    name: string;
+  };
+  price: number;
+  stock: number;
+  status: string;
+}
 
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredItems = inventoryItems.filter(
+  // Fetch products from Supabase
+  const { data: products = [], refetch: refetchProducts } = useQuery({
+    queryKey: ['products'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          id,
+          name,
+          price,
+          stock,
+          categories:category_id(name)
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching products:', error);
+        throw new Error(error.message);
+      }
+      
+      return data.map(product => ({
+        id: product.id,
+        name: product.name,
+        category: product.categories,
+        price: product.price,
+        stock: product.stock,
+        status: product.stock > 5 ? "Em estoque" : "Estoque baixo"
+      }));
+    },
+  });
+
+  // Filter products based on search term
+  const filteredItems = products.filter(
     (item) =>
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Format price for display
+  const formatPrice = (price: number) => {
+    return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
 
   return (
     <div className="space-y-6">
@@ -105,13 +88,16 @@ const Inventory = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm"
           />
+          <Button variant="outline" onClick={() => refetchProducts()}>
+            Atualizar
+          </Button>
         </div>
 
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>SKU</TableHead>
+                <TableHead>ID</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead className="text-right">Preço</TableHead>
@@ -121,36 +107,44 @@ const Inventory = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredItems.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.id}</TableCell>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell>{item.category}</TableCell>
-                  <TableCell className="text-right">{item.price}</TableCell>
-                  <TableCell className="text-center">{item.stock}</TableCell>
-                  <TableCell>
-                    <Badge
-                      className={
-                        item.status === "Estoque baixo"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-green-100 text-green-800"
-                      }
-                    >
-                      {item.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm">
-                        Editar
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        Detalhes
-                      </Button>
-                    </div>
+              {filteredItems.length > 0 ? (
+                filteredItems.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.id.substring(0, 8)}</TableCell>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell>{item.category.name}</TableCell>
+                    <TableCell className="text-right">{formatPrice(item.price)}</TableCell>
+                    <TableCell className="text-center">{item.stock}</TableCell>
+                    <TableCell>
+                      <Badge
+                        className={
+                          item.status === "Estoque baixo"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-green-100 text-green-800"
+                        }
+                      >
+                        {item.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" size="sm">
+                          Editar
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          Detalhes
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-6">
+                    {searchTerm ? "Nenhum produto encontrado." : "Nenhum produto cadastrado."}
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </div>
