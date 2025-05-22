@@ -42,7 +42,9 @@ export function AddProductDrawer({ children }: AddProductDrawerProps) {
           <div className="mt-4">
             <AddProductForm onSubmitSuccess={() => {
               // Usar uma referência para fechar o drawer corretamente
-              closeButtonRef.current?.click();
+              if (closeButtonRef.current) {
+                closeButtonRef.current.click();
+              }
             }} />
           </div>
           <DrawerFooter className="pt-2">
