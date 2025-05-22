@@ -39,7 +39,7 @@ export function AddProductDrawer({ children }: AddProductDrawerProps) {
               Preencha os campos abaixo para adicionar um novo produto ao inventário.
             </DrawerDescription>
           </DrawerHeader>
-          <div className="mt-4">
+          <div className="mt-4 max-h-[calc(90vh-200px)] overflow-y-auto">
             <AddProductForm onSubmitSuccess={() => {
               // Usar uma referência para fechar o drawer corretamente
               if (closeButtonRef.current) {
