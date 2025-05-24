@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,7 +28,24 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Package, Plus } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Package, Plus, MoreVertical, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
@@ -105,6 +121,7 @@ export function AddProductForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isNewCategoryDialogOpen, setIsNewCategoryDialogOpen] = useState(false);
   const [newCategory, setNewCategory] = useState("");
+  const [isDeletingCategory, setIsDeletingCategory] = useState(false);
 
   // Fetch categories from Supabase
   const { data: categories = [], refetch: refetchCategories } = useQuery({
@@ -206,6 +223,58 @@ export function AddProductForm({
     }
   }
 
+  async function handleDeleteCategory(categoryId: string, categoryName: string) {
+    setIsDeletingCategory(true);
+
+    try {
+      // Check if category is being used by any products
+      const { data: productsUsingCategory, error: checkError } = await supabase
+        .from('products')
+        .select('id')
+        .eq('category_id', categoryId);
+
+      if (checkError) throw checkError;
+
+      if (productsUsingCategory && productsUsingCategory.length > 0) {
+        toast({
+          title: "Não é possível excluir",
+          description: `A categoria "${categoryName}" está sendo usada por ${productsUsingCategory.length} produto(s). Remova ou altere a categoria desses produtos primeiro.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', categoryId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Categoria excluída",
+        description: `A categoria "${categoryName}" foi excluída com sucesso.`,
+      });
+      
+      // Refresh categories list
+      refetchCategories();
+      
+      // Clear form field if the deleted category was selected
+      if (form.getValues("category") === categoryId) {
+        form.setValue("category", "");
+      }
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      toast({
+        title: "Erro ao excluir categoria",
+        description: "Ocorreu um erro ao excluir a categoria.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingCategory(false);
+    }
+  }
+
   async function onSubmit(data: ProductFormValues) {
     setIsSubmitting(true);
 
@@ -291,7 +360,53 @@ export function AddProductForm({
                     <SelectContent>
                       {categories.map((category) => (
                         <SelectItem key={category.id} value={category.id}>
-                          {category.name}
+                          <div className="flex items-center justify-between w-full">
+                            <span>{category.name}</span>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-6 w-6 p-0 ml-2"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreVertical className="h-3 w-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem 
+                                      className="text-destructive cursor-pointer"
+                                      onSelect={(e) => e.preventDefault()}
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Excluir categoria
+                                    </DropdownMenuItem>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Tem certeza de que deseja excluir a categoria "{category.name}"? 
+                                        Esta ação não pode ser desfeita.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction 
+                                        onClick={() => handleDeleteCategory(category.id, category.name)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        disabled={isDeletingCategory}
+                                      >
+                                        {isDeletingCategory ? "Excluindo..." : "Excluir"}
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
