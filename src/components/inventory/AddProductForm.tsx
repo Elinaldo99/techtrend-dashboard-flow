@@ -29,12 +29,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -45,7 +39,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Package, Plus, MoreVertical, Trash2 } from "lucide-react";
+import { Package, Plus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
@@ -360,52 +354,42 @@ export function AddProductForm({
                     <SelectContent>
                       {categories.map((category) => (
                         <SelectItem key={category.id} value={category.id}>
-                          <div className="flex items-center justify-between w-full">
-                            <span>{category.name}</span>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
+                          <div className="flex items-center justify-between w-full group">
+                            <span className="flex-1">{category.name}</span>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
                                 <Button 
                                   variant="ghost" 
                                   size="sm" 
-                                  className="h-6 w-6 p-0 ml-2"
-                                  onClick={(e) => e.stopPropagation()}
+                                  className="h-6 w-6 p-0 ml-2 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                  }}
                                 >
-                                  <MoreVertical className="h-3 w-3" />
+                                  <X className="h-3 w-3" />
                                 </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem 
-                                      className="text-destructive cursor-pointer"
-                                      onSelect={(e) => e.preventDefault()}
-                                    >
-                                      <Trash2 className="h-4 w-4 mr-2" />
-                                      Excluir categoria
-                                    </DropdownMenuItem>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        Tem certeza de que deseja excluir a categoria "{category.name}"? 
-                                        Esta ação não pode ser desfeita.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                      <AlertDialogAction 
-                                        onClick={() => handleDeleteCategory(category.id, category.name)}
-                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                        disabled={isDeletingCategory}
-                                      >
-                                        {isDeletingCategory ? "Excluindo..." : "Excluir"}
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza de que deseja excluir a categoria "{category.name}"? 
+                                    Esta ação não pode ser desfeita.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => handleDeleteCategory(category.id, category.name)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    disabled={isDeletingCategory}
+                                  >
+                                    {isDeletingCategory ? "Excluindo..." : "Excluir"}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </SelectItem>
                       ))}
