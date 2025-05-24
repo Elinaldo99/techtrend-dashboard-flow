@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +14,7 @@ import { AddProductDrawer } from "@/components/inventory/AddProductDrawer";
 import { ProductDetailsDialog } from "@/components/inventory/ProductDetailsDialog";
 import { EditProductDialog } from "@/components/inventory/EditProductDialog";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface Product {
   id: string;
@@ -36,11 +35,13 @@ interface Product {
 
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const queryClient = useQueryClient();
 
   // Fetch products from Supabase
-  const { data: products = [], refetch: refetchProducts } = useQuery({
+  const { data: products = [], refetch: refetchProducts, isLoading } = useQuery({
     queryKey: ['products'],
     queryFn: async () => {
+      console.log('Buscando produtos...');
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -63,6 +64,8 @@ const Inventory = () => {
         throw new Error(error.message);
       }
       
+      console.log('Produtos encontrados:', data?.length || 0);
+      
       return data.map(product => ({
         id: product.id,
         name: product.name,
@@ -79,6 +82,13 @@ const Inventory = () => {
       }));
     },
   });
+
+  const handleProductUpdated = async () => {
+    console.log('Atualizando lista de produtos...');
+    // Invalidar e refetch dos produtos
+    await queryClient.invalidateQueries({ queryKey: ['products'] });
+    await refetchProducts();
+  };
 
   // Filter products based on search term
   const filteredItems = products.filter(
@@ -108,7 +118,7 @@ const Inventory = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm"
           />
-          <Button variant="outline" onClick={() => refetchProducts()}>
+          <Button variant="outline" onClick={handleProductUpdated}>
             Atualizar
           </Button>
         </div>
@@ -127,7 +137,13 @@ const Inventory = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredItems.length > 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-6">
+                    Carregando produtos...
+                  </TableCell>
+                </TableRow>
+              ) : filteredItems.length > 0 ? (
                 filteredItems.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.id.substring(0, 8)}</TableCell>
@@ -150,7 +166,7 @@ const Inventory = () => {
                       <div className="flex justify-end gap-2">
                         <EditProductDialog 
                           product={item} 
-                          onProductUpdated={refetchProducts}
+                          onProductUpdated={handleProductUpdated}
                         />
                         <ProductDetailsDialog product={item} />
                       </div>

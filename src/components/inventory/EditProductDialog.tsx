@@ -200,6 +200,7 @@ export function EditProductDialog({ product, onProductUpdated, children }: EditP
 
   const handleDelete = async () => {
     setIsDeleting(true);
+    console.log('Tentando excluir produto:', product.id);
 
     try {
       const { error } = await supabase
@@ -207,20 +208,31 @@ export function EditProductDialog({ product, onProductUpdated, children }: EditP
         .delete()
         .eq('id', product.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro do Supabase ao excluir:', error);
+        throw error;
+      }
 
+      console.log('Produto excluído com sucesso');
+      
       toast({
         title: "Produto excluído",
         description: "O produto foi removido com sucesso!",
       });
 
-      onProductUpdated();
+      // Fechar o dialog primeiro
       setIsOpen(false);
-    } catch (error) {
+      
+      // Aguardar um pouco antes de atualizar a lista
+      setTimeout(() => {
+        onProductUpdated();
+      }, 100);
+      
+    } catch (error: any) {
       console.error('Erro ao excluir produto:', error);
       toast({
         title: "Erro ao excluir",
-        description: "Não foi possível excluir o produto. Tente novamente.",
+        description: error.message || "Não foi possível excluir o produto. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -382,9 +394,13 @@ export function EditProductDialog({ product, onProductUpdated, children }: EditP
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                      Excluir
+                    <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleDelete} 
+                      disabled={isDeleting}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isDeleting ? "Excluindo..." : "Excluir"}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
