@@ -12,17 +12,25 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { AddProductDrawer } from "@/components/inventory/AddProductDrawer";
+import { ProductDetailsDialog } from "@/components/inventory/ProductDetailsDialog";
+import { EditProductDialog } from "@/components/inventory/EditProductDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
 interface Product {
   id: string;
   name: string;
+  category_id: string;
   category: {
     name: string;
   };
   price: number;
   stock: number;
+  width: number;
+  height: number;
+  weight: number;
+  description?: string;
+  created_at: string;
   status: string;
 }
 
@@ -38,8 +46,14 @@ const Inventory = () => {
         .select(`
           id,
           name,
+          category_id,
           price,
           stock,
+          width,
+          height,
+          weight,
+          description,
+          created_at,
           categories:category_id(name)
         `)
         .order('created_at', { ascending: false });
@@ -52,9 +66,15 @@ const Inventory = () => {
       return data.map(product => ({
         id: product.id,
         name: product.name,
+        category_id: product.category_id,
         category: product.categories,
         price: product.price,
         stock: product.stock,
+        width: product.width,
+        height: product.height,
+        weight: product.weight,
+        description: product.description,
+        created_at: product.created_at,
         status: product.stock > 5 ? "Em estoque" : "Estoque baixo"
       }));
     },
@@ -128,12 +148,11 @@ const Inventory = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="sm">
-                          Editar
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          Detalhes
-                        </Button>
+                        <EditProductDialog 
+                          product={item} 
+                          onProductUpdated={refetchProducts}
+                        />
+                        <ProductDetailsDialog product={item} />
                       </div>
                     </TableCell>
                   </TableRow>
