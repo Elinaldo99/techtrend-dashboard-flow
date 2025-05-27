@@ -82,11 +82,17 @@ const Inventory = () => {
         status: product.stock > 5 ? "Em estoque" : "Estoque baixo"
       }));
     },
+    staleTime: 0, // Always refetch when component mounts
+    refetchOnWindowFocus: true,
   });
 
   const handleProductUpdated = async () => {
     console.log('Forçando atualização da lista de produtos...');
+    
+    // Clear the cache and refetch immediately
+    queryClient.removeQueries({ queryKey: ['products'] });
     await refetch();
+    
     console.log('Lista de produtos atualizada');
   };
 

@@ -140,7 +140,14 @@ export function EditProductDialog({ product, onProductUpdated, children }: EditP
         description: "O produto foi removido com sucesso!",
       });
 
+      // Close dialog first, then update data
       setIsOpen(false);
+      
+      // Force immediate cache invalidation and refetch
+      await queryClient.invalidateQueries({ queryKey: ['products'] });
+      await queryClient.refetchQueries({ queryKey: ['products'] });
+      
+      // Call the parent callback to trigger any additional updates
       onProductUpdated();
       
     } catch (error: any) {
