@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,24 +82,11 @@ const Inventory = () => {
         status: product.stock > 5 ? "Em estoque" : "Estoque baixo"
       }));
     },
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
   });
 
   const handleProductUpdated = async () => {
-    console.log('Atualizando lista de produtos após modificação...');
-    
-    // Limpar cache completamente
-    await queryClient.removeQueries({ queryKey: ['products'] });
-    
-    // Invalidar e refetch
-    await queryClient.invalidateQueries({ queryKey: ['products'] });
-    
-    // Forçar refetch direto
+    console.log('Forçando atualização da lista de produtos...');
     await refetch();
-    
     console.log('Lista de produtos atualizada');
   };
 

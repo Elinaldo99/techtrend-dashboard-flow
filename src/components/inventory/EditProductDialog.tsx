@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import {
   Dialog,
@@ -205,59 +206,31 @@ export function EditProductDialog({ product, onProductUpdated, children }: EditP
     if (isDeleting) return;
     
     setIsDeleting(true);
-    console.log('Iniciando exclusão do produto:', product.id);
+    console.log('Excluindo produto:', product.id);
 
     try {
-      // Primeiro, verificar se o produto existe
-      const { data: existingProduct, error: checkError } = await supabase
-        .from('products')
-        .select('id')
-        .eq('id', product.id)
-        .single();
-
-      if (checkError || !existingProduct) {
-        console.log('Produto não encontrado no banco:', checkError);
-        toast({
-          title: "Produto não encontrado",
-          description: "O produto pode já ter sido excluído.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log('Produto encontrado, prosseguindo com exclusão...');
-
-      // Executar a exclusão
-      const { error: deleteError } = await supabase
+      // Executar a exclusão diretamente
+      const { error } = await supabase
         .from('products')
         .delete()
         .eq('id', product.id);
 
-      if (deleteError) {
-        console.error('Erro ao excluir produto:', deleteError);
-        throw deleteError;
+      if (error) {
+        console.error('Erro ao excluir produto:', error);
+        throw error;
       }
 
-      console.log('Produto excluído com sucesso do banco de dados');
-
-      // Limpar completamente o cache
-      await queryClient.removeQueries({ queryKey: ['products'] });
-      
-      // Revalidar todas as queries de produtos
-      await queryClient.invalidateQueries({ queryKey: ['products'] });
-      
-      // Forçar um refetch imediato
-      await queryClient.refetchQueries({ queryKey: ['products'] });
+      console.log('Produto excluído com sucesso');
 
       toast({
         title: "Produto excluído",
         description: "O produto foi removido com sucesso!",
       });
 
-      // Fechar o dialog primeiro
+      // Fechar o dialog imediatamente
       setIsOpen(false);
       
-      // Chamar o callback para atualizar a lista
+      // Forçar atualização imediata
       onProductUpdated();
       
     } catch (error: any) {

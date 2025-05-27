@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -222,9 +223,10 @@ export function AddProductForm({
 
   async function handleDeleteCategory(categoryId: string, categoryName: string) {
     setIsDeletingCategory(true);
+    console.log('Excluindo categoria:', categoryId);
 
     try {
-      // Check if category is being used by any products
+      // Verificar se a categoria está sendo usada por produtos
       const { data: productsUsingCategory, error: checkError } = await supabase
         .from('products')
         .select('id')
@@ -241,25 +243,28 @@ export function AddProductForm({
         return;
       }
 
+      // Executar a exclusão diretamente
       const { error } = await supabase
         .from('categories')
         .delete()
         .eq('id', categoryId);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao excluir categoria:', error);
+        throw error;
+      }
+      
+      console.log('Categoria excluída com sucesso');
       
       toast({
         title: "Categoria excluída",
         description: `A categoria "${categoryName}" foi excluída com sucesso.`,
       });
       
-      // Invalidar TODAS as queries relacionadas para garantir atualização em todo o sistema
-      await queryClient.invalidateQueries({ queryKey: ['categories'] });
-      await queryClient.invalidateQueries({ queryKey: ['products'] });
-      await queryClient.refetchQueries({ queryKey: ['categories'] });
-      await queryClient.refetchQueries({ queryKey: ['products'] });
+      // Forçar atualização imediata das categorias
+      await refetchCategories();
       
-      // Clear form field if the deleted category was selected
+      // Limpar campo do formulário se a categoria excluída estava selecionada
       if (form.getValues("category") === categoryId) {
         form.setValue("category", "");
       }
