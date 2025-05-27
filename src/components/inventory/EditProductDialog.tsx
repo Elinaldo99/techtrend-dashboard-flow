@@ -202,22 +202,53 @@ export function EditProductDialog({ product, onProductUpdated, children }: EditP
   };
 
   const handleDelete = async () => {
+    if (isDeleting) return;
+    
     setIsDeleting(true);
-    console.log('Tentando excluir produto:', product.id);
+    console.log('Iniciando exclusão do produto:', product.id);
 
     try {
-      const { error } = await supabase
+      // Primeiro, verificar se o produto existe
+      const { data: existingProduct, error: checkError } = await supabase
+        .from('products')
+        .select('id')
+        .eq('id', product.id)
+        .single();
+
+      if (checkError || !existingProduct) {
+        console.log('Produto não encontrado no banco:', checkError);
+        toast({
+          title: "Produto não encontrado",
+          description: "O produto pode já ter sido excluído.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('Produto encontrado, prosseguindo com exclusão...');
+
+      // Executar a exclusão
+      const { error: deleteError } = await supabase
         .from('products')
         .delete()
         .eq('id', product.id);
 
-      if (error) {
-        console.error('Erro do Supabase ao excluir:', error);
-        throw error;
+      if (deleteError) {
+        console.error('Erro ao excluir produto:', deleteError);
+        throw deleteError;
       }
 
-      console.log('Produto excluído com sucesso');
+      console.log('Produto excluído com sucesso do banco de dados');
+
+      // Limpar completamente o cache
+      await queryClient.removeQueries({ queryKey: ['products'] });
       
+      // Revalidar todas as queries de produtos
+      await queryClient.invalidateQueries({ queryKey: ['products'] });
+      
+      // Forçar um refetch imediato
+      await queryClient.refetchQueries({ queryKey: ['products'] });
+
       toast({
         title: "Produto excluído",
         description: "O produto foi removido com sucesso!",
@@ -226,15 +257,11 @@ export function EditProductDialog({ product, onProductUpdated, children }: EditP
       // Fechar o dialog primeiro
       setIsOpen(false);
       
-      // Invalidar TODAS as queries relacionadas a produtos para garantir atualização em todo o sistema
-      await queryClient.invalidateQueries({ queryKey: ['products'] });
-      await queryClient.refetchQueries({ queryKey: ['products'] });
-      
-      // Chamar o callback
+      // Chamar o callback para atualizar a lista
       onProductUpdated();
       
     } catch (error: any) {
-      console.error('Erro ao excluir produto:', error);
+      console.error('Erro durante exclusão:', error);
       toast({
         title: "Erro ao excluir",
         description: error.message || "Não foi possível excluir o produto. Tente novamente.",

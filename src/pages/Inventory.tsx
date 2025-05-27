@@ -38,7 +38,7 @@ const Inventory = () => {
   const queryClient = useQueryClient();
 
   // Fetch products from Supabase
-  const { data: products = [], refetch: refetchProducts, isLoading } = useQuery({
+  const { data: products = [], isLoading, refetch } = useQuery({
     queryKey: ['products'],
     queryFn: async () => {
       console.log('Buscando produtos...');
@@ -81,15 +81,25 @@ const Inventory = () => {
         status: product.stock > 5 ? "Em estoque" : "Estoque baixo"
       }));
     },
-    staleTime: 0, // Sempre considerar os dados como stale para garantir revalidação
-    gcTime: 0, // Não manter dados em cache por muito tempo
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const handleProductUpdated = async () => {
-    console.log('Atualizando lista de produtos...');
-    // Invalidar e refetch forçado
+    console.log('Atualizando lista de produtos após modificação...');
+    
+    // Limpar cache completamente
+    await queryClient.removeQueries({ queryKey: ['products'] });
+    
+    // Invalidar e refetch
     await queryClient.invalidateQueries({ queryKey: ['products'] });
-    await queryClient.refetchQueries({ queryKey: ['products'] });
+    
+    // Forçar refetch direto
+    await refetch();
+    
+    console.log('Lista de produtos atualizada');
   };
 
   // Filter products based on search term

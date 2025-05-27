@@ -8,9 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface Product {
   id: string;
   name: string;
-  category: {
-    name: string;
-  };
+  category: string;
   stock: number;
 }
 
@@ -19,6 +17,7 @@ const LowStockTable = () => {
   const { data: lowStockItems = [] } = useQuery({
     queryKey: ['products'],
     queryFn: async () => {
+      console.log('Buscando produtos com estoque baixo...');
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -35,15 +34,18 @@ const LowStockTable = () => {
         return [];
       }
       
+      console.log('Produtos com estoque baixo encontrados:', data?.length || 0);
+      
       return data.map(product => ({
         id: product.id,
         name: product.name,
         category: product.categories?.name || 'Sem categoria',
         stock: product.stock,
-        minStock: 5,
       }));
     },
-    staleTime: 0, // Sempre buscar dados atualizados
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   return (
