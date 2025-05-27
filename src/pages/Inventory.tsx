@@ -81,13 +81,15 @@ const Inventory = () => {
         status: product.stock > 5 ? "Em estoque" : "Estoque baixo"
       }));
     },
+    staleTime: 0, // Sempre considerar os dados como stale para garantir revalidação
+    gcTime: 0, // Não manter dados em cache por muito tempo
   });
 
   const handleProductUpdated = async () => {
     console.log('Atualizando lista de produtos...');
-    // Invalidar e refetch dos produtos
+    // Invalidar e refetch forçado
     await queryClient.invalidateQueries({ queryKey: ['products'] });
-    await refetchProducts();
+    await queryClient.refetchQueries({ queryKey: ['products'] });
   };
 
   // Filter products based on search term

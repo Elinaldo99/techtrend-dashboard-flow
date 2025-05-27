@@ -2,39 +2,50 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
-const lowStockItems = [
-  {
-    id: "SKU-001",
-    name: "iPhone 13 Pro",
-    category: "Celulares",
-    stock: 3,
-    minStock: 5,
-  },
-  {
-    id: "SKU-002",
-    name: "Samsung Galaxy S21",
-    category: "Celulares",
-    stock: 2,
-    minStock: 5,
-  },
-  {
-    id: "SKU-003",
-    name: "Sony WH-1000XM4",
-    category: "Acessórios",
-    stock: 4,
-    minStock: 10,
-  },
-  {
-    id: "SKU-004",
-    name: "Apple Watch Series 7",
-    category: "Acessórios",
-    stock: 1,
-    minStock: 5,
-  },
-];
+interface Product {
+  id: string;
+  name: string;
+  category: {
+    name: string;
+  };
+  stock: number;
+}
 
 const LowStockTable = () => {
+  // Buscar produtos com estoque baixo do Supabase
+  const { data: lowStockItems = [] } = useQuery({
+    queryKey: ['products'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          id,
+          name,
+          stock,
+          categories:category_id(name)
+        `)
+        .lte('stock', 5)
+        .order('stock', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching low stock products:', error);
+        return [];
+      }
+      
+      return data.map(product => ({
+        id: product.id,
+        name: product.name,
+        category: product.categories?.name || 'Sem categoria',
+        stock: product.stock,
+        minStock: 5,
+      }));
+    },
+    staleTime: 0, // Sempre buscar dados atualizados
+  });
+
   return (
     <Card>
       <CardHeader>
@@ -52,25 +63,33 @@ const LowStockTable = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {lowStockItems.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.id}</TableCell>
-                <TableCell>{item.name}</TableCell>
-                <TableCell>{item.category}</TableCell>
-                <TableCell className="text-center">{item.stock}</TableCell>
-                <TableCell>
-                  <Badge
-                    className={
-                      item.stock <= 2
-                        ? "bg-red-100 text-red-800"
-                        : "bg-yellow-100 text-yellow-800"
-                    }
-                  >
-                    {item.stock <= 2 ? "Crítico" : "Baixo"}
-                  </Badge>
+            {lowStockItems.length > 0 ? (
+              lowStockItems.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">{item.id.substring(0, 8)}</TableCell>
+                  <TableCell>{item.name}</TableCell>
+                  <TableCell>{item.category}</TableCell>
+                  <TableCell className="text-center">{item.stock}</TableCell>
+                  <TableCell>
+                    <Badge
+                      className={
+                        item.stock <= 2
+                          ? "bg-red-100 text-red-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }
+                    >
+                      {item.stock <= 2 ? "Crítico" : "Baixo"}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-6">
+                  Nenhum produto com estoque baixo
                 </TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </CardContent>

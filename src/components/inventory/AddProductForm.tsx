@@ -42,6 +42,7 @@ import {
 import { Package, Plus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Schema para validação do formulário
 const productSchema = z.object({
@@ -116,6 +117,7 @@ export function AddProductForm({
   const [isNewCategoryDialogOpen, setIsNewCategoryDialogOpen] = useState(false);
   const [newCategory, setNewCategory] = useState("");
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
+  const queryClient = useQueryClient();
 
   // Fetch categories from Supabase
   const { data: categories = [], refetch: refetchCategories } = useQuery({
@@ -195,8 +197,9 @@ export function AddProductForm({
           description: `A categoria "${newCategory}" foi adicionada com sucesso.`,
         });
         
-        // Refresh categories list
-        refetchCategories();
+        // Invalidar queries de categorias para atualizar todas as listas
+        await queryClient.invalidateQueries({ queryKey: ['categories'] });
+        await queryClient.refetchQueries({ queryKey: ['categories'] });
         
         // Set the form value to the new category
         if (data) {
@@ -250,8 +253,11 @@ export function AddProductForm({
         description: `A categoria "${categoryName}" foi excluída com sucesso.`,
       });
       
-      // Refresh categories list
-      refetchCategories();
+      // Invalidar TODAS as queries relacionadas para garantir atualização em todo o sistema
+      await queryClient.invalidateQueries({ queryKey: ['categories'] });
+      await queryClient.invalidateQueries({ queryKey: ['products'] });
+      await queryClient.refetchQueries({ queryKey: ['categories'] });
+      await queryClient.refetchQueries({ queryKey: ['products'] });
       
       // Clear form field if the deleted category was selected
       if (form.getValues("category") === categoryId) {
@@ -301,6 +307,10 @@ export function AddProductForm({
         title: "Produto adicionado",
         description: `${data.name} foi adicionado ao inventário.`,
       });
+      
+      // Invalidar queries de produtos para atualizar todas as listas
+      await queryClient.invalidateQueries({ queryKey: ['products'] });
+      await queryClient.refetchQueries({ queryKey: ['products'] });
       
       form.reset();
       onSubmitSuccess();

@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2 } from "lucide-react";
 
@@ -77,6 +77,7 @@ export function EditProductDialog({ product, onProductUpdated, children }: EditP
   });
 
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch categories
   const { data: categories = [] } = useQuery({
@@ -184,6 +185,8 @@ export function EditProductDialog({ product, onProductUpdated, children }: EditP
         description: "As alterações foram salvas com sucesso!",
       });
 
+      // Invalidar todas as queries relacionadas a produtos
+      await queryClient.invalidateQueries({ queryKey: ['products'] });
       onProductUpdated();
       setIsOpen(false);
     } catch (error) {
@@ -223,10 +226,12 @@ export function EditProductDialog({ product, onProductUpdated, children }: EditP
       // Fechar o dialog primeiro
       setIsOpen(false);
       
-      // Aguardar um pouco antes de atualizar a lista
-      setTimeout(() => {
-        onProductUpdated();
-      }, 100);
+      // Invalidar TODAS as queries relacionadas a produtos para garantir atualização em todo o sistema
+      await queryClient.invalidateQueries({ queryKey: ['products'] });
+      await queryClient.refetchQueries({ queryKey: ['products'] });
+      
+      // Chamar o callback
+      onProductUpdated();
       
     } catch (error: any) {
       console.error('Erro ao excluir produto:', error);
