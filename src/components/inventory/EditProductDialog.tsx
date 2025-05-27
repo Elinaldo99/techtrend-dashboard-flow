@@ -9,32 +9,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2 } from "lucide-react";
+import { ProductEditForm } from "./ProductEditForm";
+import { ProductDeleteDialog } from "./ProductDeleteDialog";
+import { validateProductForm } from "@/utils/productValidation";
 
 interface Product {
   id: string;
@@ -49,11 +30,6 @@ interface Product {
   height: number;
   weight: number;
   description?: string;
-}
-
-interface Category {
-  id: string;
-  name: string;
 }
 
 interface EditProductDialogProps {
@@ -80,20 +56,6 @@ export function EditProductDialog({ product, onProductUpdated, children }: EditP
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch categories
-  const { data: categories = [] } = useQuery({
-    queryKey: ['categories'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .order('name');
-      
-      if (error) throw new Error(error.message);
-      return data as Category[];
-    },
-  });
-
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -101,65 +63,18 @@ export function EditProductDialog({ product, onProductUpdated, children }: EditP
     }));
   };
 
-  const validateForm = () => {
-    if (!formData.name.trim()) {
-      toast({
-        title: "Erro de validação",
-        description: "Nome do produto é obrigatório.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (!formData.category_id) {
-      toast({
-        title: "Erro de validação",
-        description: "Categoria é obrigatória.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    const price = parseFloat(formData.price);
-    const stock = parseInt(formData.stock);
-    const width = parseFloat(formData.width);
-    const height = parseFloat(formData.height);
-    const weight = parseFloat(formData.weight);
-
-    if (isNaN(price) || price <= 0) {
-      toast({
-        title: "Erro de validação",
-        description: "Preço deve ser um número positivo.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (isNaN(stock) || stock < 0) {
-      toast({
-        title: "Erro de validação",
-        description: "Estoque deve ser um número não negativo.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (isNaN(width) || width <= 0 || isNaN(height) || height <= 0 || isNaN(weight) || weight <= 0) {
-      toast({
-        title: "Erro de validação",
-        description: "Dimensões e peso devem ser números positivos.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    return true;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    const validationError = validateProductForm(formData);
+    if (validationError) {
+      toast({
+        title: validationError.title,
+        description: validationError.description,
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsLoading(true);
 
@@ -186,7 +101,6 @@ export function EditProductDialog({ product, onProductUpdated, children }: EditP
         description: "As alterações foram salvas com sucesso!",
       });
 
-      // Invalidar todas as queries relacionadas a produtos
       await queryClient.invalidateQueries({ queryKey: ['products'] });
       onProductUpdated();
       setIsOpen(false);
@@ -209,7 +123,6 @@ export function EditProductDialog({ product, onProductUpdated, children }: EditP
     console.log('Excluindo produto:', product.id);
 
     try {
-      // Executar a exclusão diretamente
       const { error } = await supabase
         .from('products')
         .delete()
@@ -227,10 +140,7 @@ export function EditProductDialog({ product, onProductUpdated, children }: EditP
         description: "O produto foi removido com sucesso!",
       });
 
-      // Fechar o dialog imediatamente
       setIsOpen(false);
-      
-      // Forçar atualização imediata
       onProductUpdated();
       
     } catch (error: any) {
@@ -272,144 +182,20 @@ export function EditProductDialog({ product, onProductUpdated, children }: EditP
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="name">Nome do Produto *</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-              placeholder="Digite o nome do produto"
-              required
-            />
-          </div>
+        <form onSubmit={handleSubmit}>
+          <ProductEditForm 
+            product={product}
+            formData={formData}
+            onInputChange={handleInputChange}
+          />
 
-          <div>
-            <Label htmlFor="category">Categoria *</Label>
-            <Select value={formData.category_id} onValueChange={(value) => handleInputChange('category_id', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="price">Preço (R$) *</Label>
-              <Input
-                id="price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.price}
-                onChange={(e) => handleInputChange('price', e.target.value)}
-                placeholder="0,00"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="stock">Estoque *</Label>
-              <Input
-                id="stock"
-                type="number"
-                min="0"
-                value={formData.stock}
-                onChange={(e) => handleInputChange('stock', e.target.value)}
-                placeholder="0"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="width">Largura (cm) *</Label>
-              <Input
-                id="width"
-                type="number"
-                step="0.1"
-                min="0"
-                value={formData.width}
-                onChange={(e) => handleInputChange('width', e.target.value)}
-                placeholder="0.0"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="height">Altura (cm) *</Label>
-              <Input
-                id="height"
-                type="number"
-                step="0.1"
-                min="0"
-                value={formData.height}
-                onChange={(e) => handleInputChange('height', e.target.value)}
-                placeholder="0.0"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="weight">Peso (kg) *</Label>
-              <Input
-                id="weight"
-                type="number"
-                step="0.1"
-                min="0"
-                value={formData.weight}
-                onChange={(e) => handleInputChange('weight', e.target.value)}
-                placeholder="0.0"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="description">Descrição</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => handleInputChange('description', e.target.value)}
-              placeholder="Descrição opcional do produto"
-              rows={3}
-            />
-          </div>
-
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 mt-4">
             <div className="flex justify-between items-center w-full">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button type="button" variant="destructive" size="sm" disabled={isDeleting}>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    {isDeleting ? "Excluindo..." : "Excluir"}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Tem certeza de que deseja excluir o produto "{product.name}"? 
-                      Esta ação não pode ser desfeita.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={handleDelete} 
-                      disabled={isDeleting}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      {isDeleting ? "Excluindo..." : "Excluir"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <ProductDeleteDialog 
+                product={product}
+                isDeleting={isDeleting}
+                onDelete={handleDelete}
+              />
 
               <div className="flex gap-2">
                 <Button type="button" variant="outline" onClick={handleCancel}>
