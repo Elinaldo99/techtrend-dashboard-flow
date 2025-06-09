@@ -1,4 +1,3 @@
-
 import { Menu, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,12 +7,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 interface HeaderProps {
   toggleSidebar: () => void;
 }
 
 const Header = ({ toggleSidebar }: HeaderProps) => {
+  const navigate = useNavigate();
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
+
   return (
     <header className="sticky top-0 z-30 h-16 bg-white border-b flex items-center px-4 shadow-sm">
       <div className="flex w-full items-center justify-between">
@@ -81,7 +88,7 @@ const Header = ({ toggleSidebar }: HeaderProps) => {
             <DropdownMenuContent align="end">
               <DropdownMenuItem>Meu Perfil</DropdownMenuItem>
               <DropdownMenuItem>Configurações</DropdownMenuItem>
-              <DropdownMenuItem className="text-red-600">Sair</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout} className="text-red-600">Sair</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
