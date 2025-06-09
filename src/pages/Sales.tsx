@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,63 +19,22 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import NewSaleDialog from "@/components/sales/NewSaleDialog";
+import SaleDeleteDialog from "@/components/sales/SaleDeleteDialog";
+import SaleDetailsDialog from "@/components/sales/SaleDetailsDialog";
+import EditSaleDialog from "@/components/sales/EditSaleDialog";
 
-const salesData = [
-  {
-    id: "#ORD-001",
-    customer: "João Silva",
-    date: "20/05/2023",
-    products: "iPhone 13 Pro",
-    status: "entregue",
-    payment: "Cartão de Crédito",
-    total: "R$ 6.999,00",
-  },
-  {
-    id: "#ORD-002",
-    customer: "Maria Oliveira",
-    date: "19/05/2023",
-    products: "MacBook Pro 14\"",
-    status: "pendente",
-    payment: "PIX",
-    total: "R$ 14.999,00",
-  },
-  {
-    id: "#ORD-003",
-    customer: "Pedro Santos",
-    date: "18/05/2023",
-    products: "AirPods Pro",
-    status: "enviado",
-    payment: "Boleto",
-    total: "R$ 1.899,00",
-  },
-  {
-    id: "#ORD-004",
-    customer: "Ana Costa",
-    date: "17/05/2023",
-    products: "iPad Air",
-    status: "cancelado",
-    payment: "Cartão de Crédito",
-    total: "R$ 4.799,00",
-  },
-  {
-    id: "#ORD-005",
-    customer: "Lucas Ferreira",
-    date: "16/05/2023",
-    products: "Samsung Galaxy S21",
-    status: "entregue",
-    payment: "PIX",
-    total: "R$ 4.999,00",
-  },
-  {
-    id: "#ORD-006",
-    customer: "Julia Mendes",
-    date: "15/05/2023",
-    products: "Apple Watch Series 7",
-    status: "enviado",
-    payment: "Cartão de Débito",
-    total: "R$ 3.799,00",
-  },
-];
+interface Sale {
+  id: string;
+  customer: string;
+  date: string;
+  products: string;
+  status: string;
+  payment: string;
+  total: string;
+}
+
+const salesData: Sale[] = [];
 
 const statusMap: Record<string, { label: string; color: string }> = {
   pendente: { label: "Pendente", color: "bg-yellow-100 text-yellow-800" },
@@ -88,19 +46,49 @@ const statusMap: Record<string, { label: string; color: string }> = {
 const Sales = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [date, setDate] = useState<Date | undefined>(undefined);
+  const [sales, setSales] = useState<Sale[]>(salesData);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
+  const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
 
-  const filteredSales = salesData.filter(
+  const filteredSales = sales.filter(
     (sale) =>
-      sale.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sale.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sale.products.toLowerCase().includes(searchTerm.toLowerCase())
+      (sale.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sale.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sale.products.toLowerCase().includes(searchTerm.toLowerCase())) &&
+      (!date || sale.date === format(date, "dd/MM/yyyy"))
   );
+
+  const handleAddSale = (sale: Sale) => {
+    setSales([sale, ...sales]);
+  };
+
+  const handleDeleteSale = (id?: string) => {
+    const saleId = id || selectedSaleId;
+    if (saleId) {
+      setSales(sales.filter((sale) => sale.id !== saleId));
+      setDeleteDialogOpen(false);
+      setDetailsDialogOpen(false);
+      setSelectedSaleId(null);
+      setSelectedSale(null);
+    }
+  };
+
+  const handleEditSale = (updated: Sale) => {
+    setSales(sales.map(s => s.id === updated.id ? updated : s));
+    setEditDialogOpen(false);
+    setSelectedSale(null);
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Histórico de Vendas</h1>
-        <Button>Nova Venda</Button>
+        <Button onClick={() => setDialogOpen(true)}>Nova Venda</Button>
+        <NewSaleDialog open={dialogOpen} onOpenChange={setDialogOpen} onAddSale={handleAddSale} />
       </div>
 
       <div className="bg-white rounded-lg shadow p-4 space-y-4">
@@ -169,9 +157,28 @@ const Sales = () => {
                   <TableCell>{sale.payment}</TableCell>
                   <TableCell className="text-right">{sale.total}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline" size="sm">
-                      Detalhes
-                    </Button>
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedSale(sale);
+                          setDetailsDialogOpen(true);
+                        }}
+                      >
+                        Detalhes
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedSale(sale);
+                          setEditDialogOpen(true);
+                        }}
+                      >
+                        Editar
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -179,6 +186,24 @@ const Sales = () => {
           </Table>
         </div>
       </div>
+      <SaleDeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onDelete={handleDeleteSale}
+        saleId={selectedSaleId || ""}
+      />
+      <SaleDetailsDialog
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+        sale={selectedSale}
+        onDelete={handleDeleteSale}
+      />
+      <EditSaleDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        sale={selectedSale}
+        onSave={handleEditSale}
+      />
     </div>
   );
 };

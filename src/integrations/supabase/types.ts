@@ -77,6 +77,36 @@ export type Database = {
           },
         ]
       }
+      sales: {
+        Row: {
+          id: string
+          customer: string
+          products: string
+          total: number // ALTERADO de string para number
+          status: string
+          date: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          customer: string
+          products: string
+          total: number // ALTERADO de string para number
+          status: string
+          date: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          customer?: string
+          products?: string
+          total?: number // ALTERADO de string para number
+          status?: string
+          date?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

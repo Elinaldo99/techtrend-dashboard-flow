@@ -1,4 +1,3 @@
-
 import { Home, Package, ShoppingCart, BarChart, Users, Settings } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -10,7 +9,7 @@ const Sidebar = ({ open }: SidebarProps) => {
   const location = useLocation();
   
   const menuItems = [
-    { icon: Home, label: "Dashboard", path: "/" },
+    { icon: Home, label: "Dashboard", path: "/dashboard" },
     { icon: Package, label: "Inventário", path: "/inventory" },
     { icon: ShoppingCart, label: "Vendas", path: "/sales" },
     { icon: Users, label: "Clientes", path: "/customers" },
