@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -13,40 +12,27 @@ interface Product {
 }
 
 const LowStockTable = () => {
-  // Buscar produtos com estoque baixo do Supabase
-  const { data: lowStockItems = [] } = useQuery({
-    queryKey: ['products'],
+  const { data: products = [], isLoading, error } = useQuery({
+    queryKey: ["low-stock-products"],
     queryFn: async () => {
-      console.log('Buscando produtos com estoque baixo...');
       const { data, error } = await supabase
-        .from('products')
-        .select(`
-          id,
-          name,
-          stock,
-          categories:category_id(name)
-        `)
-        .lte('stock', 5)
-        .order('stock', { ascending: true });
-      
-      if (error) {
-        console.error('Error fetching low stock products:', error);
-        return [];
-      }
-      
-      console.log('Produtos com estoque baixo encontrados:', data?.length || 0);
-      
-      return data.map(product => ({
-        id: product.id,
-        name: product.name,
-        category: product.categories?.name || 'Sem categoria',
-        stock: product.stock,
-      }));
+        .from("products")
+        .select("id, name, stock")
+        .lte("stock", 5);
+      if (error) throw error;
+      return data || [];
     },
-    staleTime: 0,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
   });
+
+  if (isLoading) {
+    return <div className="p-4 text-center">Carregando produtos com baixo estoque...</div>;
+  }
+  if (error) {
+    return <div className="p-4 text-center text-red-600">Erro ao carregar produtos: {error.message}</div>;
+  }
+  if (!Array.isArray(products) || products.length === 0) {
+    return <div className="p-4 text-center text-gray-500">Nenhum produto com baixo estoque.</div>;
+  }
 
   return (
     <Card>
@@ -65,8 +51,8 @@ const LowStockTable = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {lowStockItems.length > 0 ? (
-              lowStockItems.map((item) => (
+            {products.length > 0 ? (
+              products.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{item.id.substring(0, 8)}</TableCell>
                   <TableCell>{item.name}</TableCell>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -369,43 +368,7 @@ export function AddProductForm({
                     <SelectContent>
                       {categories.map((category) => (
                         <SelectItem key={category.id} value={category.id}>
-                          <div className="flex items-center justify-between w-full group">
-                            <span className="flex-1">{category.name}</span>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="h-6 w-6 p-0 ml-2 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                  }}
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Tem certeza de que deseja excluir a categoria "{category.name}"? 
-                                    Esta ação não pode ser desfeita.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction 
-                                    onClick={() => handleDeleteCategory(category.id, category.name)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    disabled={isDeletingCategory}
-                                  >
-                                    {isDeletingCategory ? "Excluindo..." : "Excluir"}
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
+                          {category.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -417,6 +380,21 @@ export function AddProductForm({
                   >
                     <Plus className="h-4 w-4 mr-1" /> 
                     Nova
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={!field.value}
+                    onClick={async () => {
+                      if (!field.value) return;
+                      const selectedCat = categories.find(c => c.id === field.value);
+                      if (!selectedCat) return;
+                      if (window.confirm(`Deseja realmente excluir a categoria "${selectedCat.name}"? Essa ação não pode ser desfeita.`)) {
+                        await handleDeleteCategory(selectedCat.id, selectedCat.name);
+                      }
+                    }}
+                  >
+                    Excluir
                   </Button>
                 </div>
                 <FormMessage />

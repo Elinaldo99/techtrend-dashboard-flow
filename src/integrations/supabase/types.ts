@@ -77,6 +77,66 @@ export type Database = {
           },
         ]
       }
+      sales: {
+        Row: {
+          id: string
+          customer: string
+          products: string
+          total: number // ALTERADO de string para number
+          status: string
+          date: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          customer: string
+          products: string
+          total: number // ALTERADO de string para number
+          status: string
+          date: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          customer?: string
+          products?: string
+          total?: number // ALTERADO de string para number
+          status?: string
+          date?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      customers: {
+        Row: {
+          id: string
+          name: string
+          email: string
+          phone: string
+          total_purchases: number
+          last_purchase: string | null
+          status: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          email: string
+          phone: string
+          total_purchases?: number
+          last_purchase?: string | null
+          status: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          email?: string
+          phone?: string
+          total_purchases?: number
+          last_purchase?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

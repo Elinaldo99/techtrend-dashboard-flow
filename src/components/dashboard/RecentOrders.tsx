@@ -1,42 +1,9 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-
-const orders = [
-  {
-    id: "#ORD-001",
-    customer: "João Silva",
-    product: "iPhone 13 Pro",
-    total: "R$ 6.999,00",
-    status: "entregue",
-    date: "20/05/2023",
-  },
-  {
-    id: "#ORD-002",
-    customer: "Maria Oliveira",
-    product: "MacBook Pro 14\"",
-    total: "R$ 14.999,00",
-    status: "pendente",
-    date: "19/05/2023",
-  },
-  {
-    id: "#ORD-003",
-    customer: "Pedro Santos",
-    product: "AirPods Pro",
-    total: "R$ 1.899,00",
-    status: "enviado",
-    date: "18/05/2023",
-  },
-  {
-    id: "#ORD-004",
-    customer: "Ana Costa",
-    product: "iPad Air",
-    total: "R$ 4.799,00",
-    status: "cancelado",
-    date: "17/05/2023",
-  },
-];
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
 const statusMap: Record<string, { label: string; color: string }> = {
   pendente: { label: "Pendente", color: "bg-yellow-100 text-yellow-800" },
@@ -46,6 +13,17 @@ const statusMap: Record<string, { label: string; color: string }> = {
 };
 
 const RecentOrders = () => {
+  const { data: sales = [], isLoading: loadingSales, refetch } = useQuery({
+    queryKey: ["sales"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sales")
+        .select("id, customer, products, total, status, date");
+      if (error) throw error;
+      return data as Database["public"]["Tables"]["sales"]["Row"][] || [];
+    },
+  });
+
   return (
     <Card className="col-span-2">
       <CardHeader>
@@ -64,15 +42,15 @@ const RecentOrders = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orders.map((order) => (
+            {sales.map((order) => (
               <TableRow key={order.id}>
                 <TableCell className="font-medium">{order.id}</TableCell>
                 <TableCell>{order.customer}</TableCell>
-                <TableCell>{order.product}</TableCell>
+                <TableCell>{order.products}</TableCell>
                 <TableCell className="text-right">{order.total}</TableCell>
                 <TableCell>
-                  <Badge className={statusMap[order.status].color}>
-                    {statusMap[order.status].label}
+                  <Badge className={statusMap[order.status]?.color || ""}>
+                    {statusMap[order.status]?.label || order.status}
                   </Badge>
                 </TableCell>
                 <TableCell>{order.date}</TableCell>
